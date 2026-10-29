@@ -1,17 +1,21 @@
 {
   "name": "cafe-central",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "type": "module",
-  "description": "Caf\u00e9 Central, Viseu \u2014 public site + admin panel (zero runtime dependencies)",
+  "description": "Café Central, Viseu — public site + admin panel",
   "engines": {
     "node": ">=22.5"
   },
   "scripts": {
     "start": "node --no-warnings server/index.js",
-    "dev": "node --no-warnings --watch server/index.js",
-    "test": "node --no-warnings --test tests/*.test.js",
-    "seed:demo": "node --no-warnings server/seed-demo.js",
+    "dev": "node --no-warnings --env-file=.env --watch server/index.js",
+    "test": "node --no-warnings --env-file=.env --test tests/*.test.js",
+    "seed:demo": "node --no-warnings --env-file=.env server/seed-demo.js",
     "build": "python3 build.py"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1159.0",
+    "pg": "^8.23.1"
   }
 }

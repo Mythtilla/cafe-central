@@ -1,4 +1,6 @@
-import { shapeItem, shapePhoto, shapeReview, publicSettings, getSettings, reviewSummary } from '../db.js';
+import {
+  shapeItem, shapePhoto, shapeReview, publicSettings, getSettings, reviewSummary,
+} from '../db.js';
 import { readJson } from '../http.js';
 import { attachClient, broadcast } from '../events.js';
 import { requireString, requireInteger, HttpError } from '../validate.js';
@@ -18,11 +20,11 @@ export function publicReview(row) {
   return { id: r.id, name: r.name, rating: r.rating, text: r.text, reply: r.reply, created_at: r.created_at };
 }
 
-export function buildMenu(db, { includeUnavailable = false } = {}) {
-  const cats = db.prepare('SELECT * FROM categories ORDER BY sort, id').all();
-  const items = db
-    .prepare(`SELECT * FROM items ${includeUnavailable ? '' : 'WHERE available = 1'} ORDER BY sort, id`)
-    .all();
+export async function buildMenu(pool, { includeUnavailable = false } = {}) {
+  const { rows: cats } = await pool.query('SELECT * FROM categories ORDER BY sort, id');
+  const { rows: items } = await pool.query(
+    `SELECT * FROM items ${includeUnavailable ? '' : 'WHERE available = TRUE'} ORDER BY sort, id`
+  );
   const mapItem = includeUnavailable ? (r) => ({ ...shapeItem(r), photo_url: photoUrl(r.photo) }) : publicItem;
   const out = cats.map((c) => ({
     id: Number(c.id), name: c.name, description: c.description, sort: Number(c.sort),
@@ -56,22 +58,28 @@ async function googleReviews(env) {
 }
 
 export function registerPublic(router, ctx) {
-  const { db, limiters, config } = ctx;
+  const { pool, limiters, config } = ctx;
 
   router.add('GET', '/api/health', () => ({ ok: true }));
-  router.add('GET', '/api/menu', () => buildMenu(db));
-  router.add('GET', '/api/gallery', () => ({
-    photos: db.prepare('SELECT * FROM photos ORDER BY sort, id').all().map((r) => {
-      const p = shapePhoto(r); return { id: p.id, url: photoUrl(p.file), caption: p.caption };
-    }),
-  }));
-  router.add('GET', '/api/settings', () => publicSettings(db));
+  router.add('GET', '/api/menu', () => buildMenu(pool));
+  router.add('GET', '/api/gallery', async () => {
+    const { rows } = await pool.query('SELECT * FROM photos ORDER BY sort, id');
+    return {
+      photos: rows.map((r) => {
+        const p = shapePhoto(r); return { id: p.id, url: photoUrl(p.file), caption: p.caption };
+      }),
+    };
+  });
+  router.add('GET', '/api/settings', () => publicSettings(pool));
 
-  router.add('GET', '/api/reviews', ({ url }) => {
+  router.add('GET', '/api/reviews', async ({ url }) => {
     const limit = Math.min(Math.max(parseInt(url.searchParams.get('limit'), 10) || 20, 1), 50);
     const offset = Math.max(parseInt(url.searchParams.get('offset'), 10) || 0, 0);
-    const rows = db.prepare("SELECT * FROM reviews WHERE status = 'approved' ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?").all(limit, offset);
-    return { summary: reviewSummary(db), reviews: rows.map(publicReview) };
+    const { rows } = await pool.query(
+      "SELECT * FROM reviews WHERE status = 'approved' ORDER BY created_at DESC, id DESC LIMIT $1 OFFSET $2",
+      [limit, offset]
+    );
+    return { summary: await reviewSummary(pool), reviews: rows.map(publicReview) };
   });
 
   router.add('POST', '/api/reviews', async ({ req, ip }) => {
@@ -82,10 +90,13 @@ export function registerPublic(router, ctx) {
     const rating = requireInteger(body.rating, 'rating', { min: 1, max: 5, code: 'invalid_rating' });
     const name = requireString(body.name, 'name', { min: 1, max: 60, code: 'invalid_name' });
     const text = requireString(body.text, 'text', { min: 3, max: 1000, code: 'invalid_text' });
-    const status = getSettings(db).auto_approve === '1' ? 'approved' : 'pending';
-    const info = db.prepare('INSERT INTO reviews (name, rating, text, status) VALUES (?, ?, ?, ?)').run(name, rating, text, status);
-    const row = db.prepare('SELECT * FROM reviews WHERE id = ?').get(info.lastInsertRowid);
-    const summary = reviewSummary(db);
+    const status = (await getSettings(pool)).auto_approve === '1' ? 'approved' : 'pending';
+    const { rows } = await pool.query(
+      'INSERT INTO reviews (name, rating, text, status) VALUES ($1, $2, $3, $4) RETURNING *',
+      [name, rating, text, status]
+    );
+    const row = rows[0];
+    const summary = await reviewSummary(pool);
     if (status === 'approved') broadcast('review', { review: publicReview(row), summary });
     broadcast('review:update', { summary });
     return { ok: true, status };

@@ -2,13 +2,13 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { openDatabase } from './db.js';
+import { createPool, migrate } from './db.js';
 import {
   ensureAdmin, hashPassword, loadSessionSecret, verifySession, parseCookies, createLimiter, COOKIE_NAME, CSRF_HEADER, CSRF_VALUE,
 } from './auth.js';
 import { applyBaseHeaders, sendJson, sendError, serveFile, clientIp, originOf, hostOf } from './http.js';
 import { ping, closeAll } from './events.js';
-import { resolveUpload, mimeFor, isFileStillUsed } from './uploads.js';
+import { createStorage, mimeFor } from './uploads.js';
 import { HttpError } from './validate.js';
 import { createRouter } from './router.js';
 import { registerPublic } from './routes/public.js';
@@ -20,22 +20,30 @@ const CSP_PUBLIC = "default-src 'self'; img-src 'self' data:; font-src 'self' da
 const CSP_ADMIN = "default-src 'self'; img-src 'self' data:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
 
 export async function createApp(options = {}) {
-  const env = { ...process.env, ...(options.env || {}) };
+  // Some hosts hand .env values over with their surrounding quotes intact.
+  // Normalise once here so every reader below sees the plain value.
+  const raw = { ...process.env, ...(options.env || {}) };
+  const env = {};
+  for (const [key, value] of Object.entries(raw)) {
+    env[key] = typeof value === 'string' ? value.replace(/^(['"])([\s\S]*)\1$/, '$2') : value;
+  }
   const config = {
     env, port: Number(env.PORT ?? 3000), host: env.HOST || '0.0.0.0',
+    // Only used for the fallback session secret file when SESSION_SECRET is unset.
     dataDir: path.resolve(options.dataDir || env.DATA_DIR || path.join(ROOT, 'data')),
     trustProxy: env.TRUST_PROXY === '1',
     origins: String(env.ALLOWED_ORIGIN || '').split(',').map((s) => s.trim()).filter(Boolean),
     secureCookies: env.TRUST_PROXY === '1',
   };
-  const uploadDir = path.join(config.dataDir, 'uploads');
-  fs.mkdirSync(uploadDir, { recursive: true });
+  fs.mkdirSync(config.dataDir, { recursive: true });
 
-  const db = openDatabase(config.dataDir);
-  await ensureAdmin(db, { username: env.ADMIN_USER, password: env.ADMIN_PASSWORD, log: options.log || console });
+  const pool = createPool(config.env);
+  await migrate(pool);
+  await ensureAdmin(pool, { username: env.ADMIN_USER, password: env.ADMIN_PASSWORD, log: options.log || console });
+  const storage = createStorage(config.env);
   const secret = loadSessionSecret(config.dataDir);
   const ctx = {
-    db, config, uploadDir, secret, dummyHash: await hashPassword('not-a-real-password'),
+    pool, storage, config, secret, dummyHash: await hashPassword('not-a-real-password'),
     limiters: {
       login: createLimiter({ max: 8, windowMs: 15 * 60e3, name: 'login' }),
       review: createLimiter({ max: 3, windowMs: 60 * 60e3, name: 'review' }),
@@ -81,10 +89,21 @@ export async function createApp(options = {}) {
 
       if (!['GET', 'HEAD'].includes(req.method)) return sendError(res, 405, 'method_not_allowed');
 
-      /* ----- uploads (immutable, content-addressed by random name) ----- */
+      /* ----- uploads (streamed from the bucket; the container disk is ephemeral) ----- */
       if (p.startsWith('/uploads/')) {
-        const name = p.slice(9), full = resolveUpload(uploadDir, name);
-        if (!full || !serveFile(req, res, uploadDir, name, { cache: 'public, max-age=31536000, immutable', headers: { 'Content-Type': mimeFor(name), 'Content-Security-Policy': "default-src 'none'" } })) return sendError(res, 404, 'not_found');
+        const name = p.slice(9);
+        const file = await storage.open(name);
+        if (!file) return sendError(res, 404, 'not_found');
+        res.writeHead(200, {
+          'Content-Type': file.contentType || mimeFor(name),
+          ...(file.contentLength ? { 'Content-Length': file.contentLength } : {}),
+          ...(file.etag ? { ETag: file.etag } : {}),
+          'Cache-Control': 'public, max-age=31536000, immutable',
+          'Content-Security-Policy': "default-src 'none'",
+        });
+        if (req.method === 'HEAD') { res.end(); return; }
+        file.stream.on('error', () => { try { res.destroy(); } catch { /* gone */ } });
+        file.stream.pipe(res);
         return;
       }
 
@@ -106,14 +125,19 @@ export async function createApp(options = {}) {
     }
   });
 
-  const timers = [setInterval(ping, 25_000), setInterval(() => sweepOrphans(db, uploadDir), 6 * 3600e3)];
+  const timers = [setInterval(ping, 25_000)];
   timers.forEach((t) => t.unref());
-  sweepOrphans(db, uploadDir);
 
   return {
-    server, db, config, ctx,
+    server, pool, storage, config, ctx,
     listen: () => new Promise((resolve) => server.listen(config.port, config.host, () => resolve(server.address()))),
-    async close() { timers.forEach(clearInterval); closeAll(); await new Promise((r) => server.close(r)); server.closeAllConnections?.(); db.close(); },
+    async close() {
+      timers.forEach(clearInterval);
+      closeAll();
+      await new Promise((r) => server.close(r));
+      server.closeAllConnections?.();
+      await pool.end();
+    },
   };
 }
 
@@ -128,21 +152,11 @@ function corsHeaders(req, config) {
   };
 }
 
-/** Delete uploads that were never attached to anything and are older than one hour. */
-function sweepOrphans(db, dir) {
-  try {
-    for (const f of fs.readdirSync(dir)) {
-      const full = path.join(dir, f);
-      if (Date.now() - fs.statSync(full).mtimeMs > 3600e3 && !isFileStillUsed(db, f)) fs.unlinkSync(full);
-    }
-  } catch { /* best effort */ }
-}
-
 const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isMain) {
   const app = await createApp();
   const addr = await app.listen();
-  console.log(`Café Central running → http://localhost:${addr.port}   admin → /admin   data → ${app.config.dataDir}`);
+  console.log(`Café Central running → http://localhost:${addr.port}   admin → /admin   bucket → ${app.storage.bucket}`);
   const stop = async () => { await app.close(); process.exit(0); };
   process.on('SIGINT', stop); process.on('SIGTERM', stop);
 }

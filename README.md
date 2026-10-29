@@ -12,10 +12,8 @@ source if the café asks for a Portuguese version (swap the two filenames, or ad
 a second build step).
 
 **Live:** <https://cafecentral.antideploy.app> — account
-`bhaskarz01022011@gmail.com`, application `cafe-central`
-(`2064eec3-2d5e-4ac7-9d89-e3d43a5899dc`). Redeploy with
-`POST https://antideploy.com/api/v1/deploy?applicationId=2064eec3-2d5e-4ac7-9d89-e3d43a5899dc`
-after `python3 build.py`, sending only `index.html` + `assets/`.
+`bhaskarz01022011@gmail.com` (signs in with GitHub), application `cafe-central`
+(`2064eec3-2d5e-4ac7-9d89-e3d43a5899dc`). Source: <https://github.com/Mythtilla/cafe-central>.
 
 ---
 
@@ -33,7 +31,7 @@ Both are generated from the same source, so they always match.
 ## Preview it
 
 ```bash
-cd /home/bhaskar/Projects/viseu-leads/cafe-central-v2
+cd cafe-central-v2
 python3 -m http.server 8123
 ```
 
@@ -49,15 +47,55 @@ full-page screenshots don't come out blank.
 
 ## Deploy it
 
-It is plain HTML/CSS/JS with no build step at runtime and no dependencies.
+The site, the admin panel and the API are **one Node service**. They cannot be
+split across two hosts: the session cookie is `SameSite=Strict` and the CSRF check
+compares the request's `Origin` host with the request's own host, so an admin
+panel on a different origin would fail to log in and every write would be refused.
 
-- **Netlify** — drag the whole `cafe-central-v2` folder (minus `src/`, `shots/`,
-  `build.py`, `README.md`) onto <https://app.netlify.com/drop>. Done in 10 seconds.
-- **Cloudflare Pages** — create a project, upload the folder, no build command,
-  output directory `/`.
-- **Any cPanel / shared host** — upload `index.html` and `assets/` to `public_html`.
+### Where it runs now — Antideploy
 
-The `assets/` folder must sit next to `index.html`. That is the only rule.
+Free plan, no card. Live at <https://cafecentral.antideploy.app>. The container is
+stateless: Postgres holds the data, an S3 bucket holds the images, and nothing on
+the container's disk survives a deploy.
+
+Redeploy after changing anything:
+
+```bash
+cd /home/bhaskar/viseu-leads/cafe-central-v2
+python3 build.py                       # only if src/ or assets/ changed
+tar czf /tmp/cafe-deploy.tgz \
+  --exclude=.git --exclude=node_modules --exclude=shots --exclude=data \
+  --exclude=.env --exclude=.env.bak --exclude=.env.example .
+TOKEN=$(sed -n 's/.*"token"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' ~/.antideploy/config.json)
+curl -sS -X POST "https://antideploy.com/api/v1/deploy?applicationId=2064eec3-2d5e-4ac7-9d89-e3d43a5899dc" \
+  -H "Authorization: Bearer $TOKEN" -F "archive=@/tmp/cafe-deploy.tgz" \
+  -F 'env={"ADMIN_USER":"admin","ADMIN_PASSWORD":"…","TRUST_PROXY":"1","ALLOWED_ORIGIN":"https://cafecentral.antideploy.app","SESSION_SECRET":"…"}'
+```
+
+Then poll the returned `watch` URL until `status` is `succeeded` or `failed`.
+Do **not** send `DATABASE_URL`, `PG*` or `AWS_*` in that JSON — the platform
+injects them; sending stale copies is how you point the app at the wrong database.
+
+The `env` object is write-only: the values are stored encrypted and never come
+back out, so that is the only place to set them.
+
+### Anywhere else — Docker
+
+```bash
+docker build -t cafe-central .
+docker run -d -p 3000:3000 --env-file .env cafe-central
+```
+
+The image is `node:22-slim` + `npm ci --omit=dev`. It reads `$PORT` from the
+environment and holds no persistent state, so it runs unchanged on Fly, Render,
+Cloud Run, or a VPS with `restart: unless-stopped`.
+
+### Plain static hosting (site only, no admin)
+
+`index.html` + `assets/` also work as a static site — Netlify drop, Cloudflare
+Pages, or `public_html` on any cPanel. In that mode the page falls back to the
+menu baked into the HTML and the reviews/gallery sections stay hidden. The admin
+panel and live updates need the Node service.
 
 ---
 
@@ -209,11 +247,59 @@ New SVGs: `intro-street`, `bean`, `ornament`, `icon-star`, `icon-sound`, `icon-b
 
 ### The backend (complete)
 ```
-npm start            # http://localhost:3000  (admin at /admin)
-npm run seed:demo    # optional: illustrative dishes, no prices
-npm test             # 25 API tests
+cp .env.example .env   # then fill in DATABASE_URL and the AWS_* bucket keys
+npm install
+npm start              # http://localhost:3000  (admin at /admin)
+npm run seed:demo      # optional: illustrative dishes, no prices
+npm test               # 25 API tests
 ```
-`server/index.js` (entry), `router.js`, `routes/public.js`, `routes/admin.js` were added to the existing `auth/db/events/http/uploads/validate` modules.
+
+**Storage model — nothing lives on the app's disk.** The container is replaced on
+every deploy, so:
+
+* **Menu, settings, reviews, photos** → **Postgres** (`server/db.js`). The schema
+  is created with `IF NOT EXISTS` on every boot; there is no migration framework.
+* **Uploaded images** → an **S3 bucket** (`server/uploads.js`), streamed back
+  through `/uploads/<name>` so URLs stay stable and no presigned link can expire.
+* **The only local file** is a fallback session secret, and only when
+  `SESSION_SECRET` is unset.
+
+`server/index.js` (entry), `router.js`, `routes/public.js`, `routes/admin.js` sit
+on top of the `auth/db/events/http/uploads/validate` modules.
+
+### Environment variables
+
+`.env.example` is the full list with a comment on each. The app does not read
+`.env` itself — the npm scripts pass `--env-file=.env`, and Docker takes
+`--env-file .env`. The five that matter:
+
+| Variable | Why |
+|---|---|
+| `DATABASE_URL` | The only source of truth for the Postgres connection. The pool parses it and ignores ambient `PG*` vars, because hosts deliver those quoted (`PGPORT="5432"` → `NaN`). |
+| `BUCKET_NAME` + `AWS_*` | S3 bucket and key. `AWS_S3_FORCE_PATH_STYLE=true` is required: the bucket name contains a dot. |
+| `SESSION_SECRET` | 32+ random hex bytes (`openssl rand -hex 32`). If unset, one is generated into `$DATA_DIR` — which is lost on every container deploy, so every session dies with it. |
+| `ADMIN_USER` / `ADMIN_PASSWORD` | Used **only when the admins table is empty**. Editing them later does not change an existing password; use Definições → password. |
+| `TRUST_PROXY` | `1` behind a proxy, so rate limits see `X-Forwarded-For`. Leave `0` when exposed directly or a client can spoof its IP and dodge the limits. |
+
+### Backing up
+
+Two things hold data, and both need copying:
+
+```bash
+# 1. The database (menu, settings, reviews, photo captions)
+pg_dump "$DATABASE_URL" --no-owner --file=cafe-$(date +%F).sql
+
+# 2. The uploads bucket (the image files themselves)
+aws s3 sync "s3://$BUCKET_NAME" ./uploads-backup --endpoint-url "$AWS_ENDPOINT_URL_S3"
+```
+
+`GET /api/admin/export` (logged in, from the admin's backup button) returns the
+same data as JSON but **not** the image bytes — it lists the filenames. Restoring
+a pg_dump without the bucket leaves every photo as a 404, so back up both or
+neither.
+
+There is no automatic backup on the free plan. Take one before showing the client
+anything you would be embarrassed to retype.
 
 * **Public API:** `/api/menu`, `/api/gallery`, `/api/settings`, `/api/reviews` (GET + POST), `/api/google-reviews`, `/api/events` (SSE).
 * **Admin API** (`/api/admin/*`, session cookie + CSRF header): login/logout/password, stats, settings, categories, items, reorder, upload, gallery, review moderation (approve / reject / reply / delete), JSON export.
@@ -224,10 +310,13 @@ npm test             # 25 API tests
 * **Hours format** (Definições): one line per day, `Day | hours`, e.g. `Segunda a sábado | 07:00 – 19:00`. Leave empty to keep the provisional hours.
 
 ### Verified
-* `npm test`: 25/25 (auth, CSRF, CRUD, uploads by magic bytes, size limit, review moderation, honeypot, rate limits, SSE, CORS, path traversal, cascade delete, export).
+* `npm test`: 25/25 (auth, CSRF, CRUD, uploads by magic bytes, size limit, review moderation, honeypot, rate limits, SSE, CORS, path traversal, cascade delete, export). The suite runs against **Postgres + S3**, in its own throwaway schema and bucket prefix, so it can hammer the live database without touching its data.
+* Docker image builds and runs (`node:22-slim`, 356 MB); login, item CRUD, upload, image served from the bucket, review stayed pending.
+* Live deploy at <https://cafecentral.antideploy.app>: page, `/admin`, CSS, fonts and API all 200; login accepted; uploaded a photo, created an item, saw it on the public menu, fetched the image back; a review stayed pending. All test rows deleted afterwards.
 * Real-browser run (Chromium): admin login → photo upload → hours/announcement/gallery edits appeared live on the public page; a review stayed hidden while pending and appeared live, with the owner's reply, after approval. Intro checked on desktop and phone; no horizontal overflow at 390 px; no console errors.
 
 ### Not verified
 * **Audio was never heard** (no speakers in the test environment). It is synthesized and tuned by design; please listen once and tell me if anything is too loud or harsh, since volumes are single constants in `sound.js`.
-* Google reviews (no API key), HTTPS / Docker deploy, Safari/Firefox (only Chromium was run).
+* Google reviews (no API key). The endpoint reports `{configured:false}` and the section stays hidden.
+* Safari and Firefox (only Chromium was run). SSE reconnects are the browser's own `EventSource` behaviour and were not interrupted on purpose to watch it recover.
 * Opening hours, prices and the 1955 date remain **unverified**; nothing was invented.

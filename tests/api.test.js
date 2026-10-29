@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { S3Client, ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3';
+import pg from 'pg';
 import { createApp } from '../server/index.js';
 
 const quiet = { warn() {}, log() {}, error() {} };
@@ -10,6 +12,13 @@ let app, base, cookie = '', n = 0;
 const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(64)]);
 const JPG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(64)]);
 const WEBP = Buffer.concat([Buffer.from('RIFF'), Buffer.alloc(4), Buffer.from('WEBP'), Buffer.alloc(32)]);
+
+/**
+ * Every run gets its own Postgres schema and bucket prefix, so the suite can
+ * hammer the same database the live app uses without touching its data.
+ */
+const schema = `test_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+const prefix = `${schema}/`;
 
 /** Every call gets its own fake IP (TRUST_PROXY=1) so rate-limit tests don't poison each other. */
 async function call(p, { method = 'GET', body, headers = {}, raw, ip, auth = true } = {}) {
@@ -25,11 +34,57 @@ async function call(p, { method = 'GET', body, headers = {}, raw, ip, auth = tru
 const login = () => call('/api/admin/login', { method: 'POST', body: { username: 'admin', password: 'test-password-123' }, auth: false });
 
 before(async () => {
+  // Neon's pooled endpoint (PgBouncer) refuses search_path as a startup
+  // parameter, so the suite connects to the direct endpoint to isolate itself
+  // in its own schema.
+  const directUrl = new URL(process.env.DATABASE_URL).toString().replace('-pooler.', '.');
+
+  const bootstrap = new pg.Pool({ connectionString: directUrl, ssl: { rejectUnauthorized: false }, max: 1 });
+  await bootstrap.query(`CREATE SCHEMA "${schema}"`);
+  await bootstrap.end();
+
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cafe-test-'));
-  app = await createApp({ dataDir: dir, log: quiet, env: { PORT: '0', HOST: '127.0.0.1', ADMIN_USER: 'admin', ADMIN_PASSWORD: 'test-password-123', TRUST_PROXY: '1', ALLOWED_ORIGIN: 'https://site.test' } });
+  app = await createApp({
+    dataDir: dir,
+    log: quiet,
+    env: {
+      PORT: '0', HOST: '127.0.0.1', ADMIN_USER: 'admin', ADMIN_PASSWORD: 'test-password-123',
+      TRUST_PROXY: '1', ALLOWED_ORIGIN: 'https://site.test',
+      DATABASE_URL: directUrl,
+      PG_OPTIONS: `-c search_path=${schema}`,
+      UPLOAD_PREFIX: prefix,
+      SESSION_SECRET: 'test-session-secret-that-is-long-enough',
+    },
+  });
   const addr = await app.listen(); base = `http://127.0.0.1:${addr.port}`;
 });
-after(async () => { await app.close(); });
+
+after(async () => {
+  await app.close();
+
+  const s3 = new S3Client({
+    region: process.env.AWS_REGION,
+    endpoint: process.env.AWS_ENDPOINT_URL_S3,
+    forcePathStyle: true,
+    credentials: { accessKeyId: process.env.AWS_ACCESS_KEY_ID, secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY },
+  });
+  const bucket = app.storage.bucket;
+  const listed = await s3.send(new ListObjectsV2Command({ Bucket: bucket, Prefix: prefix }));
+  if (listed.Contents?.length) {
+    await s3.send(new DeleteObjectsCommand({
+      Bucket: bucket,
+      Delete: { Objects: listed.Contents.map((o) => ({ Key: o.Key })) },
+    }));
+  }
+
+  const cleanup = new pg.Pool({
+    connectionString: new URL(process.env.DATABASE_URL).toString().replace('-pooler.', '.'),
+    ssl: { rejectUnauthorized: false },
+    max: 1,
+  });
+  await cleanup.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
+  await cleanup.end();
+});
 
 test('admin routes return 401 when logged out', async () => {
   for (const p of ['/api/admin/me', '/api/admin/stats', '/api/admin/menu', '/api/admin/reviews', '/api/admin/settings']) assert.equal((await call(p, { auth: false })).status, 401, p);
@@ -100,8 +155,8 @@ test('uploaded file attaches to an item and is served correctly; deleting the it
   assert.equal(r.json.photo_url, upload.url);
   const img = await fetch(base + upload.url); assert.equal(img.status, 200); assert.equal(img.headers.get('content-type'), 'image/png');
   assert.match(img.headers.get('cache-control'), /immutable/);
-  const onDisk = path.join(app.config.dataDir, 'uploads', upload.file); assert.ok(fs.existsSync(onDisk));
-  await call('/api/admin/items/' + item.id, { method: 'DELETE' }); assert.ok(!fs.existsSync(onDisk));
+  const onDisk = await app.storage.exists(upload.file); assert.ok(onDisk);
+  await call('/api/admin/items/' + item.id, { method: 'DELETE' }); assert.ok(!(await app.storage.exists(upload.file)));
   item = (await call('/api/admin/items', { method: 'POST', body: { category_id: cat.id, name: 'Pastel de nata' } })).json;
 });
 
@@ -116,7 +171,7 @@ test('gallery: add, caption, public listing, delete removes file', async () => {
   await call('/api/admin/gallery/' + g.id, { method: 'PUT', body: { caption: 'O balcão' } });
   assert.equal((await call('/api/gallery', { auth: false })).json.photos[0].caption, 'O balcão');
   await call('/api/admin/gallery/' + g.id, { method: 'DELETE' });
-  assert.ok(!fs.existsSync(path.join(app.config.dataDir, 'uploads', up.file)));
+  assert.ok(!(await app.storage.exists(up.file)));
 });
 
 test('reorder persists sort order', async () => {

@@ -174,9 +174,9 @@ export function createLimiter({ max, windowMs, name }) {
 
 /* ---------- admin bootstrap ---------- */
 
-export async function ensureAdmin(db, { username, password, log = console }) {
-  const existing = db.prepare('SELECT id, username FROM admins LIMIT 1').get();
-  if (existing) return { created: false, username: existing.username };
+export async function ensureAdmin(pool, { username, password, log = console }) {
+  const { rows } = await pool.query('SELECT id, username FROM admins LIMIT 1');
+  if (rows.length) return { created: false, username: rows[0].username };
 
   const user = (username || 'admin').trim() || 'admin';
   let pass = password;
@@ -187,7 +187,10 @@ export async function ensureAdmin(db, { username, password, log = console }) {
   }
 
   const hash = await hashPassword(pass);
-  db.prepare('INSERT INTO admins (username, password_hash) VALUES (?, ?)').run(user, hash);
+  await pool.query(
+    'INSERT INTO admins (username, password_hash) VALUES ($1, $2) ON CONFLICT (username) DO NOTHING',
+    [user, hash]
+  );
 
   if (generated) {
     log.warn('');

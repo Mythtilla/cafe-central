@@ -1,5 +1,10 @@
 # Plan — dynamic Café Central
 
+> **Historical document.** The plan below is what was built originally. Since
+> then the app was ported off `node:sqlite` + local disk to **Postgres + S3** so it
+> can run on a stateless host. Read `README.md` for the current architecture;
+> the "zero-dependency" and `/data` statements here no longer hold.
+
 ## What exists
 No framework. `src/index.template.html` + `assets/` are built into a static
 `index.html` by `build.py` (inlines 14 SVGs). Vanilla CSS with design tokens,

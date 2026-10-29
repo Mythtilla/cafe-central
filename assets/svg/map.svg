@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" fill="none" role="img" aria-labelledby="mapTitle mapDesc" class="map-svg">
+  <title id="mapTitle">Map of central Viseu with Café Central and six points of interest</title>
+  <desc id="mapDesc">Walking sketch: the café on Rua 21 de Agosto, the Mercado dos Produtores, the town hall, the Porta do Soar, the Rossio, the cathedral and the Grão Vasco Museum.</desc>
+
+  <defs>
+    <filter id="pinShadow" x="-60%" y="-60%" width="220%" height="220%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#2A1D13" flood-opacity=".22"/>
+    </filter>
+  </defs>
+
+  <rect width="640" height="640" fill="#E8DBC3"/>
+
+  <!-- city blocks -->
+  <g fill="#F7F1E2" stroke="#D5C5A8" stroke-width="1">
+    <rect x="20" y="20" width="156" height="88" rx="4"/>
+    <rect x="190" y="20" width="110" height="88" rx="4"/>
+    <rect x="314" y="20" width="152" height="88" rx="4"/>
+    <rect x="480" y="20" width="140" height="88" rx="4"/>
+
+    <rect x="20" y="120" width="156" height="50" rx="4"/>
+    <rect x="190" y="120" width="110" height="50" rx="4"/>
+    <rect x="314" y="120" width="152" height="50" rx="4"/>
+    <rect x="480" y="120" width="140" height="50" rx="4"/>
+
+    <rect x="20" y="184" width="156" height="106" rx="4"/>
+    <rect x="190" y="184" width="110" height="106" rx="4"/>
+    <rect x="314" y="184" width="152" height="106" rx="4"/>
+    <rect x="480" y="184" width="140" height="106" rx="4"/>
+
+    <rect x="20" y="304" width="156" height="70" rx="4"/>
+    <rect x="190" y="304" width="110" height="70" rx="4"/>
+    <rect x="314" y="304" width="34" height="70" rx="4"/>
+    <rect x="362" y="304" width="104" height="70" rx="4"/>
+    <rect x="480" y="304" width="140" height="70" rx="4"/>
+
+    <rect x="20" y="388" width="156" height="80" rx="4"/>
+    <rect x="190" y="388" width="110" height="80" rx="4"/>
+    <rect x="314" y="388" width="152" height="80" rx="4"/>
+    <rect x="480" y="388" width="140" height="80" rx="4"/>
+
+    <rect x="20" y="498" width="156" height="122" rx="4"/>
+    <rect x="190" y="498" width="110" height="122" rx="4"/>
+    <rect x="314" y="498" width="152" height="122" rx="4"/>
+    <rect x="480" y="498" width="140" height="122" rx="4"/>
+  </g>
+
+  <!-- building footprints -->
+  <g stroke="#D5C5A8" stroke-width="1" fill="#F2EAD8">
+    <rect x="34" y="34" width="128" height="46" rx="2"/>
+    <rect x="34" y="210" width="60" height="64" rx="2"/>
+    <rect x="106" y="210" width="56" height="64" rx="2"/>
+    <rect x="204" y="336" width="82" height="46" rx="2"/>
+    <rect x="376" y="34" width="76" height="60" rx="2"/>
+    <rect x="496" y="212" width="52" height="62" rx="2"/>
+    <rect x="556" y="212" width="50" height="62" rx="2"/>
+    <rect x="204" y="516" width="82" height="54" rx="2"/>
+    <rect x="496" y="516" width="104" height="54" rx="2"/>
+  </g>
+
+  <!-- diagonal lane -->
+  <path d="M-10 612 310 386" stroke="#E8DBC3" stroke-width="26"/>
+  <path d="M-10 612 310 386" stroke="#DCCCB0" stroke-width="1" stroke-dasharray="5 7"/>
+
+  <!-- street + landmark labels -->
+  <g fill="#9A8767" font-family="Inter Tight, system-ui, sans-serif" font-size="9.4" font-weight="600" letter-spacing="1.2" opacity=".95" class="map-labels">
+    <text x="230" y="392">R. 21 DE AGOSTO</text>
+    <text x="320" y="493" text-anchor="middle">AV. D. ANTÓNIO JOSÉ DE ALMEIDA</text>
+    <text x="96" y="618" opacity=".8">BAIRRO DA BALSA</text>
+    <text x="560" y="58" text-anchor="end" opacity=".65">OLD TOWN</text>
+  </g>
+  <g font-family="Inter Tight, system-ui, sans-serif" font-size="9" font-weight="700" letter-spacing="1.2" fill="#6F5D43" class="map-labels">
+    <text x="400" y="466" text-anchor="middle">MARKET</text>
+    <text x="330" y="159" text-anchor="middle">ROSSIO</text>
+    <text x="206" y="114">CATHEDRAL</text>
+    <text x="372" y="354" fill="#A64226">CAFÉ CENTRAL</text>
+  </g>
+
+  <!-- walking route -->
+  <path d="M338 382h17v-205h-166v-63" stroke="#A64226" stroke-width="3.2" stroke-linecap="round" stroke-dasharray="1.5 9" opacity=".9"/>
+
+  <!-- landmark pins -->
+  <g font-family="Inter Tight, system-ui, sans-serif" font-size="11" font-weight="600" text-anchor="middle">
+    <g class="map-pin" data-stop="1">
+      <circle cx="400" cy="440" r="13" fill="#FBF6EA" stroke="#A64226" stroke-width="1.8"/>
+      <text x="400" y="444" fill="#2A1D13">1</text>
+    </g>
+    <g class="map-pin" data-stop="2">
+      <circle cx="290" cy="262" r="13" fill="#FBF6EA" stroke="#A64226" stroke-width="1.8"/>
+      <text x="290" y="266" fill="#2A1D13">2</text>
+    </g>
+    <g class="map-pin" data-stop="3">
+      <circle cx="250" cy="520" r="13" fill="#FBF6EA" stroke="#A64226" stroke-width="1.8"/>
+      <text x="250" y="524" fill="#2A1D13">3</text>
+    </g>
+    <g class="map-pin" data-stop="4">
+      <circle cx="330" cy="177" r="13" fill="#FBF6EA" stroke="#A64226" stroke-width="1.8"/>
+      <text x="330" y="181" fill="#2A1D13">4</text>
+    </g>
+    <g class="map-pin" data-stop="5">
+      <circle cx="189" cy="110" r="13" fill="#FBF6EA" stroke="#A64226" stroke-width="1.8"/>
+      <text x="189" y="114" fill="#2A1D13">5</text>
+    </g>
+    <g class="map-pin" data-stop="6">
+      <circle cx="150" cy="150" r="13" fill="#FBF6EA" stroke="#A64226" stroke-width="1.8"/>
+      <text x="150" y="154" fill="#2A1D13">6</text>
+    </g>
+  </g>
+
+  <!-- cafe pin -->
+  <g class="cafe-pin" filter="url(#pinShadow)">
+    <circle class="pin-pulse" cx="338" cy="362" r="26" fill="none" stroke="#A64226" stroke-width="1.4" opacity=".5"/>
+    <path d="M338 338c-12.2 0-22 9.8-22 22 0 16.5 22 33 22 33s22-16.5 22-33c0-12.2-9.8-22-22-22Z" fill="#A64226"/>
+    <path d="M327 356h17l-1.7 8.2c-.5 2.4-2.9 3.8-6.8 3.8s-6.3-1.4-6.8-3.8Z" fill="#F7F1E2"/>
+    <path d="M344 358c4 0 4.6 5 1 6.2" stroke="#F7F1E2" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M331 352c-1.5-1.8 1.5-2.8 0-4.6M338 352c-1.5-1.8 1.5-2.8 0-4.6" stroke="#F7F1E2" stroke-width="1.4" stroke-linecap="round" opacity=".75"/>
+  </g>
+
+  <!-- compass -->
+  <g transform="translate(592 50)">
+    <circle r="17" stroke="#A64226" stroke-width="1.2" fill="#F7F1E2" fill-opacity=".7"/>
+    <path d="M0-11 4 2 0 0-4 2Z" fill="#A64226"/>
+    <text x="0" y="-22" text-anchor="middle" font-family="Inter Tight, system-ui, sans-serif" font-size="8" letter-spacing="1.5" fill="#7A6A4E">N</text>
+  </g>
+
+  <!-- scale -->
+  <g transform="translate(28 602)">
+    <path d="M0 0h78" stroke="#2A1D13" stroke-width="1.6"/>
+    <path d="M0-4v8M78-4v8M39-3v6" stroke="#2A1D13" stroke-width="1.4"/>
+    <text x="39" y="-9" text-anchor="middle" font-family="Inter Tight, system-ui, sans-serif" font-size="7.4" letter-spacing="1.4" fill="#7A6A4E">100 M</text>
+  </g>
+</svg>

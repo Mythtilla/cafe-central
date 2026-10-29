@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" fill="none" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="isSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b1228"/><stop offset=".5" stop-color="#2f2950"/><stop offset=".78" stop-color="#8a4d52"/><stop offset="1" stop-color="#d98a52"/></linearGradient>
+    <linearGradient id="isWall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7d705a"/><stop offset="1" stop-color="#4c4235"/></linearGradient>
+    <linearGradient id="isGlow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe3a6"/><stop offset=".55" stop-color="#eaa24a"/><stop offset="1" stop-color="#8e501d"/></linearGradient>
+    <linearGradient id="isStreet" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2d211a"/><stop offset="1" stop-color="#0f0a07"/></linearGradient>
+    <linearGradient id="isGreen" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#244236"/><stop offset="1" stop-color="#14261e"/></linearGradient>
+    <radialGradient id="isPool" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffcf7e" stop-opacity=".85"/><stop offset="1" stop-color="#ffcf7e" stop-opacity="0"/></radialGradient>
+    <radialGradient id="isLamp" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffe1a0" stop-opacity=".9"/><stop offset=".4" stop-color="#ffc766" stop-opacity=".28"/><stop offset="1" stop-color="#ffc766" stop-opacity="0"/></radialGradient>
+    <radialGradient id="isMoon" cx=".5" cy=".5" r=".5"><stop offset=".3" stop-color="#fff3d2" stop-opacity=".9"/><stop offset="1" stop-color="#fff3d2" stop-opacity="0"/></radialGradient>
+    <pattern id="isTile" width="26" height="26" patternUnits="userSpaceOnUse"><rect width="26" height="26" fill="#1f3a30"/><path d="M13 3l10 10-10 10L3 13Z" fill="none" stroke="#d8b26c" stroke-opacity=".45" stroke-width="1.2"/></pattern>
+  </defs>
+
+  <!-- sky -->
+  <rect width="1600" height="900" fill="url(#isSky)"/>
+  <g fill="#fff3d2">
+    <circle cx="140" cy="90" r="1.6"/><circle cx="260" cy="150" r="1.2"/><circle cx="410" cy="60" r="1.8"/><circle cx="520" cy="130" r="1.1"/><circle cx="640" cy="52" r="1.5"/>
+    <circle cx="760" cy="110" r="1.2"/><circle cx="930" cy="70" r="1.7"/><circle cx="1050" cy="150" r="1.2"/><circle cx="1180" cy="64" r="1.4"/><circle cx="1450" cy="176" r="1.3"/>
+    <circle cx="1540" cy="96" r="1.6"/><circle cx="90" cy="230" r="1.2"/><circle cx="1390" cy="260" r="1.1"/><circle cx="330" cy="290" r="1"/>
+  </g>
+  <circle cx="1290" cy="150" r="110" fill="url(#isMoon)"/><circle cx="1290" cy="150" r="34" fill="#f6e9c8"/><circle cx="1304" cy="142" r="30" fill="#2a2748" opacity=".28"/>
+
+  <!-- roofline of Viseu + cathedral towers -->
+  <g fill="#17162c" opacity=".95">
+    <path d="M0 520h90v-30h70v30h60v-50h50v50h120v-24h80v24h200v-40h70v40h300v-30h90v30h140v-56h60v56h120v-24h70v24h150V620H0Z"/>
+    <path d="M1240 620v-210h46v210ZM1330 620v-210h46v210Z"/>
+    <path d="M1234 410l29-70 29 70ZM1324 410l29-70 29 70Z"/>
+    <path d="M1286 560h44v60h-44Z"/>
+  </g>
+  <g fill="#e9a65a" opacity=".55"><rect x="104" y="500" width="9" height="12"/><rect x="236" y="470" width="8" height="11"/><rect x="560" y="484" width="9" height="12"/><rect x="880" y="480" width="8" height="12"/><rect x="1480" y="498" width="9" height="12"/></g>
+
+  <!-- neighbouring houses -->
+  <g>
+    <rect x="0" y="330" width="360" height="450" fill="#2c2535"/><rect x="0" y="330" width="360" height="22" fill="#3a3045"/>
+    <rect x="1240" y="360" width="360" height="420" fill="#33293a"/><rect x="1240" y="360" width="360" height="22" fill="#40344a"/>
+    <g fill="#ffcf7e" opacity=".85"><rect x="46" y="400" width="54" height="78"/><rect x="150" y="400" width="54" height="78" opacity=".3"/><rect x="254" y="400" width="54" height="78"/><rect x="1290" y="430" width="54" height="78" opacity=".35"/><rect x="1400" y="430" width="54" height="78"/><rect x="1510" y="430" width="54" height="78" opacity=".6"/></g>
+    <g stroke="#14111c" stroke-width="4"><path d="M73 400v78M46 439h54M281 400v78M254 439h54M1427 430v78M1400 469h54"/></g>
+  </g>
+
+  <!-- the façade -->
+  <rect x="410" y="214" width="780" height="36" fill="#8d7c5d"/><rect x="420" y="250" width="760" height="520" fill="url(#isWall)"/>
+  <g fill="#d8b26c" opacity=".35"><rect x="430" y="256" width="740" height="6"/></g>
+  <g>
+    <g id="isWin">
+      <rect x="500" y="290" width="124" height="150" fill="#25190f"/><rect x="508" y="298" width="108" height="134" fill="url(#isGlow)"/><path d="M562 298v134M508 365h108" stroke="#25190f" stroke-width="5"/>
+      <rect x="478" y="290" width="22" height="150" fill="#8a2f1e"/><rect x="624" y="290" width="22" height="150" fill="#8a2f1e"/><rect x="494" y="440" width="140" height="10" fill="#b8a27a"/>
+    </g>
+    <use href="#isWin" x="240"/><use href="#isWin" x="480"/>
+  </g>
+  <g fill="url(#isTile)" stroke="#d8b26c" stroke-opacity=".5"><rect x="420" y="462" width="760" height="18"/></g>
+
+  <!-- sign -->
+  <rect x="440" y="488" width="720" height="84" fill="#14241d" stroke="#d8b26c" stroke-width="2.5"/><rect x="450" y="497" width="700" height="66" fill="none" stroke="#d8b26c" stroke-opacity=".55"/>
+  <text x="800" y="540" text-anchor="middle" fill="#e2bd78" font-family="Fraunces, Georgia, serif" font-size="46" letter-spacing="12">CAFÉ CENTRAL</text>
+  <text x="800" y="558" text-anchor="middle" fill="#d8b26c" fill-opacity=".85" font-family="Inter Tight, system-ui, sans-serif" font-size="11" letter-spacing="7">VISEU · DESDE 1955</text>
+
+  <!-- ground floor -->
+  <rect x="420" y="572" width="760" height="198" fill="url(#isGreen)"/>
+  <g id="isArch"><path d="M482 744V650q0-48 52-48h40q52 0 52 48v94Z" fill="#0c1712"/><path d="M492 738V652q0-38 42-38h40q42 0 42 38v86Z" fill="url(#isGlow)"/><path d="M554 614v124M492 676h126" stroke="#0c1712" stroke-width="4"/><circle cx="530" cy="660" r="8" fill="#8e501d" opacity=".7"/><rect x="580" y="708" width="24" height="30" rx="3" fill="#8e501d" opacity=".6"/></g>
+  <use href="#isArch" x="430"/>
+
+  <!-- door -->
+  <rect x="730" y="578" width="140" height="182" fill="#0c1712" stroke="#d8b26c" stroke-opacity=".6" stroke-width="3"/>
+  <rect id="introDoor" x="740" y="590" width="120" height="170" fill="url(#isGlow)"/>
+  <g id="isInterior">
+    <rect x="740" y="590" width="120" height="170" fill="url(#isGlow)"/>
+    <rect x="740" y="660" width="120" height="100" fill="url(#isTile)" opacity=".55"/>
+    <path d="M800 590v36" stroke="#4a2a10" stroke-width="2"/><path d="M780 650l8-24h24l8 24Z" fill="#4a2a10"/><circle cx="800" cy="654" r="6" fill="#fff3d2"/>
+    <rect x="745" y="716" width="110" height="44" fill="#5a3418"/><rect x="745" y="712" width="110" height="6" fill="#d8b26c" opacity=".7"/>
+    <ellipse cx="772" cy="708" rx="10" ry="5" fill="#fff3d2"/><ellipse cx="830" cy="706" rx="9" ry="6" fill="#e3a14c"/>
+    <circle cx="760" cy="620" r="9" fill="#fff3d2" opacity=".5"/><circle cx="842" cy="632" r="6" fill="#fff3d2" opacity=".45"/>
+  </g>
+  <g class="door-l"><rect x="740" y="590" width="60" height="170" fill="#13251d"/><rect x="748" y="598" width="44" height="76" fill="#f0b45a" fill-opacity=".62"/><rect x="748" y="686" width="44" height="64" fill="#1e362c" stroke="#0c1712"/><circle cx="790" cy="690" r="4" fill="#d8b26c"/></g>
+  <g class="door-r"><rect x="800" y="590" width="60" height="170" fill="#13251d"/><rect x="808" y="598" width="44" height="76" fill="#f0b45a" fill-opacity=".62"/><rect x="808" y="686" width="44" height="64" fill="#1e362c" stroke="#0c1712"/><circle cx="810" cy="690" r="4" fill="#d8b26c"/></g>
+  <rect x="740" y="578" width="120" height="12" fill="#f0b45a" opacity=".8"/>
+  <rect x="872" y="596" width="30" height="16" rx="1.5" fill="#b98a3e"/><text x="887" y="608" text-anchor="middle" font-family="Inter Tight, sans-serif" font-size="8" font-weight="600" fill="#3a2a0e">1955</text>
+
+  <!-- wall lamp above the door -->
+  <circle cx="800" cy="574" r="90" fill="url(#isLamp)"/><path d="M800 566v-6" stroke="#25190f" stroke-width="3"/><path d="M786 566h28l-5 10h-18Z" fill="#d8b26c"/><circle cx="800" cy="578" r="4" fill="#fff3d2"/>
+
+  <!-- step, plants -->
+  <rect x="420" y="760" width="760" height="14" fill="#8f7c58"/>
+  <g stroke="#14111c" stroke-width="2"><path d="M690 760v-30h30v30" fill="#9f5836"/><path d="M880 760v-30h30v30" fill="#9f5836"/></g>
+  <g stroke="#356b46" stroke-width="3.4" stroke-linecap="round"><path d="M705 730c-12-22 6-38 0-52M705 730c12-18-3-34 3-48M705 730c0-24 15-30 18-44"/><path d="M895 730c-12-22 6-38 0-52M895 730c12-18-3-34 3-48M895 730c0-24 15-30 18-44"/></g>
+
+  <!-- street -->
+  <rect y="774" width="1600" height="126" fill="url(#isStreet)"/>
+  <g stroke="#e8c98a" stroke-opacity=".1" stroke-width="2" fill="none"><path d="M0 800q50-12 100 0t100 0 100 0 100 0 100 0 100 0 100 0 100 0 100 0 100 0 100 0 100 0 100 0 100 0 100 0 100 0 100 0"/><path d="M0 836q50-12 100 0t100 0 100 0 100 0 100 0 100 0 100 0 100 0 100 0 100 0 100 0 100 0 100 0 100 0 100 0 100 0 100 0"/><path d="M0 872q50-12 100 0t100 0 100 0 100 0 100 0 100 0 100 0 100 0 100 0 100 0 100 0 100 0 100 0 100 0 100 0 100 0 100 0"/></g>
+  <ellipse cx="800" cy="812" rx="340" ry="56" fill="url(#isPool)"/><path d="M740 774h120l90 126H650Z" fill="#ffcf7e" opacity=".12"/>
+
+  <!-- street lamps -->
+  <g><rect x="297" y="520" width="7" height="254" fill="#14111c"/><path d="M286 520h30l-5 22h-20Z" fill="#14111c"/><circle cx="300" cy="530" r="110" fill="url(#isLamp)"/><circle cx="300" cy="532" r="6" fill="#fff3d2"/></g>
+  <g><rect x="1297" y="520" width="7" height="254" fill="#14111c"/><path d="M1286 520h30l-5 22h-20Z" fill="#14111c"/><circle cx="1300" cy="530" r="110" fill="url(#isLamp)"/><circle cx="1300" cy="532" r="6" fill="#fff3d2"/></g>
+</svg>

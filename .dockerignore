@@ -1,0 +1,16 @@
+.git
+.gitignore
+data
+node_modules
+shots
+tests
+src
+build.py
+*.log
+.env
+.env.*
+!.env.example
+cafe-central-standalone.html
+README.md
+PLAN.md
+tunnel.sh

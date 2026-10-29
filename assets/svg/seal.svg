@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 140" fill="none" aria-hidden="true">
+  <defs>
+    <path id="sealPath" d="M70 70m-54 0a54 54 0 1 1 108 0a54 54 0 1 1-108 0"/>
+  </defs>
+  <circle cx="70" cy="70" r="67" stroke="currentColor" stroke-width="1"/>
+  <circle cx="70" cy="70" r="47" stroke="currentColor" stroke-width="1" stroke-dasharray="1.6 3.4"/>
+  <g transform="rotate(-90 70 70)">
+    <text fill="currentColor" font-family="Inter Tight, system-ui, sans-serif" font-size="8.4" letter-spacing="2.35" font-weight="500">
+      <textPath href="#sealPath">ROTA DOS CAFÉS COM HISTÓRIA · VISEU ·</textPath>
+    </text>
+  </g>
+  <text x="70" y="68" text-anchor="middle" fill="currentColor" font-family="Fraunces, Georgia, serif" font-size="27" font-style="italic" font-weight="400">1955</text>
+  <text x="70" y="84" text-anchor="middle" fill="currentColor" font-family="Inter Tight, system-ui, sans-serif" font-size="6.2" letter-spacing="2" font-weight="500" opacity=".8">CAFÉ CENTRAL</text>
+</svg>
